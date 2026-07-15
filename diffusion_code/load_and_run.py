@@ -5,7 +5,30 @@ import matplotlib.pyplot as plt
 
 from main import rectangle_data
 from model import NoiseScheduler, ForwardProcess, BackwardProcess, DiffusionModel
-from pac_bayes import compute_bound
+from pac_bayes import empirical_risk, prior_matching, avg_distance, compute_last_term
+
+
+def compute_bound_terms(data_loader, diff_model, dim):
+    """Computes the parts of the bound that do NOT depend on lambda, once."""
+    noise_sched = diff_model.forward_process.ns
+
+    emp_risk = empirical_risk(data_loader, diff_model)
+    prior_match = prior_matching(data_loader, noise_sched)
+
+    lip_norm_forward = torch.sqrt(noise_sched.alpha_bar) * (1 - noise_sched.alpha_bar_prev) / (1 - noise_sched.alpha_bar)
+    lip_norm_forward[0] = 1
+    sigma_t = 1 - noise_sched.alpha
+
+    avg_dist = avg_distance(data_loader, diff_model)
+    avg_dist_term = avg_dist * torch.prod(lip_norm_forward)
+    last_term = compute_last_term(lip_norm_forward, sigma_t, dim)
+
+    return emp_risk, prior_match, avg_dist_term, last_term
+
+
+def bound_for_lambda(emp_risk, prior_match, avg_dist_term, last_term, lamda, delta, diameter, n):
+    diam_term = lamda * diameter ** 2 / (8 * n)
+    return emp_risk + (prior_match + np.log(1 / delta)) / lamda + diam_term + avg_dist_term + last_term
 
 
 if __name__ == '__main__':
@@ -16,23 +39,21 @@ if __name__ == '__main__':
     fp = ForwardProcess(noise_scheduler=ns)
     diff_model = DiffusionModel(forward_process=fp, backward_process=bp)
 
-    # bound
+    # bound: compute the lambda-independent terms once, then sweep over lambda
     bound_data = rectangle_data(num_samples=5000)
     bound_loader = DataLoader(bound_data.tensors[0], batch_size=100, shuffle=True)
-    bound = compute_bound(data_loader=bound_loader, diff_model=diff_model, diameter=np.sqrt(8), lamda=5000, delta=0.05, dim=2)
-    print('Bound value: ', bound)
+    n = len(bound_loader.dataset)
+    diameter = np.sqrt(8)
+    delta = 0.05
 
-    # plots
-    plt.figure()
-    real_samples = rectangle_data(num_samples=2000)
-    plt.scatter(x=real_samples.tensors[0][:, 0], y=real_samples.tensors[0][:, 1], alpha=0.5)
-    plt.title('Real samples')
-    plt.savefig('real_samples.png')
+    print('Computing the lambda-independent terms (this is the slow part, run once)...')
+    emp_risk, prior_match, avg_dist_term, last_term = compute_bound_terms(bound_loader, diff_model, dim=2)
 
-    plt.figure()
-    samples = diff_model.generate(2000, xlim=(-1, 1), ylim=(-1, 1))
-    plt.scatter(samples[:, 0], samples[:, 1], alpha=0.5)
-    plt.title('Fake samples')
-    plt.savefig('fake_samples.png')
+    lambdas = {'n/10': n / 10, 'n/5': n / 5, 'n/2': n / 2, 'n': n, 'n/0.5': n / 0.5, 'n/0.1': n / 0.1}
+    print('\nlambda\tvalue\tbound')
+    for label, lamda in lambdas.items():
+        bound = bound_for_lambda(emp_risk, prior_match, avg_dist_term, last_term, lamda, delta, diameter, n)
+        print(f'{label}\t{lamda:.1f}\t{float(bound):.4f}')
 
-    plt.show()
+    print('\nPaper (Table, page 12): n/10=1.124  n/5=1.231  n/2=1.518  n=2.035  n/0.5=3.056  n/0.1=11.061')
+

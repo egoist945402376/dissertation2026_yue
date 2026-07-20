@@ -1,0 +1,35 @@
+Theory and Methods for Certifying Deep Generative Models
+Background: 
+
+Although certification for supervised classification with deep learning models has seen promising results [1], certification for generative AI models remains largely an open problem. Essential to achieving tight certificates in [1] was the shift from classical generalization bounds targeting individual models to PAC-Bayes bounds targeting distributions over models. This project’s premise is that a similar shift could unlock strategies to certify the quality of the distributions learned by deep generative models. 
+
+ 
+
+Description: 
+
+A first-of-its-kind result was obtained in [2] for diffusion models, which are one of the most important families of deep generative models. In that work, a quantitative upper bound on the Wasserstein distance between the target distribution and the distribution learned by a diffusion model was derived. Yet to support certification widely for diffusion models there is a need for refined analyses to obtain tighter confidence bounds to deliver reliable numerical values. The project will consider extensions of the results reported in [2] from the side of theory, experiments, or both. 
+
+ 
+
+While conventional wisdom attributed the success of Generative Flow Networks (GFlowNets) to their ability to exploit the compositional structure of the sample space for learning generalisable flow functions, and despite the abundance of empirical evidence, formalising this belief with verifiable non-vacuous statistical guarantees had remained elusive. In [3], the first PAC-Bayesian bounds and non-vacuous statistical guarantees for the generalisation of GFlowNets were developed. In this direction, the project will consider extensions of the results in [3] and applications to both synthetic and real-world problems exploring the performance of GFlowNets. 
+
+
+[1] https://www.jmlr.org/papers/v22/20-879.html
+[2] https://openreview.net/pdf?id=wLe1bG93yc
+[3] https://openreview.net/pdf?id=PJNhZoCjLh
+
+The project involves these stages: 
+
+(1) Replication of the experiments reported in [2] (Diffusion) or [3] (GFlowNet). 
+
+(2) Experiments to explore extending the corresponding results to other datasets with suitable modifications of the models, as necessary, to be identified by the student(s). 
+
+(3) Writing a research report of quality matching discipline standards 
+
+ 
+
+Deliverables: 
+
+Results of replication of experiments reported in [2] (Diffusion) or [3] (GFlowNet) 
+New code and results of experiments on new datasets identified by the student 
+A written project report of quality matching discipline standards

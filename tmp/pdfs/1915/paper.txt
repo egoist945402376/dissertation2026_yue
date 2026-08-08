@@ -1,0 +1,804 @@
+
+
+===== PAGE 1 =====
+Published in Transactions on Machine Learning Research (06/2024)
+A Note on the Convergence of Denoising Diffusion Proba-
+bilistic Models
+Sokhna Diarra Mbacke sokhna-diarra.mbacke.1@ulaval.ca
+Université Laval
+Omar Rivasplata o.rivasplata@ucl.ac.uk
+University College London
+Reviewed on OpenReview: https://openreview.net/forum?id=wLe1bG93yc
+Abstract
+Diffusion models are one of the most important families of deep generative models. In this
+note, we derive a quantitative upper bound on the Wasserstein distance between the target
+distribution and the distribution learned by a diffusion model. Unlike previous works on this
+topic, our result does not make assumptions on the learned score function. Moreover, our
+result holds for arbitrary data-generating distributions on bounded instance spaces, even
+those without a density with respect to Lebesgue measure, and the upper bound does not
+suffer from exponential dependencies on the ambient space dimension. Our main result
+builds upon the recent work of Mbacke et al. (2023) and our proofs are elementary.
+1 Introduction
+Along with generative adversarial networks (Goodfellow et al., 2014) and variational autoencoders (VAEs)
+(Kingma & Welling, 2014; Rezende et al., 2014), diffusion models (Sohl-Dickstein et al., 2015; Song & Ermon,
+2019; Ho et al., 2020) are one of the most prominent families of deep generative models. They have exhibited
+impressive empirical performance in image (Dhariwal & Nichol, 2021; Ho et al., 2022) and audio (Chen et al.,
+2021; Popov et al., 2021) generation, as well as other applications (Zhou et al., 2021; Sasaki et al., 2021; Li
+et al., 2022; Trabucco et al., 2023).
+There are two main approaches to diffusion models: denoising diffusion probabilistic models (DDPMs) (Sohl-
+Dickstein et al., 2015; Ho et al., 2020) and score-based generative models (Song & Ermon, 2019) (SGMs).
+The former kind, DDPMs, progressively transform samples from the target distribution into noise through
+a forward process, and train a backward process that reverses the transformation and is used to generate
+new samples. On the other hand, SGMs use score matching techniques (Hyvärinen & Dayan, 2005; Vincent,
+2011) to learn an approximation of the score function of the data-generating distribution, then generate new
+samples using Langevin dynamics. Since for real-world distributions the score function might not exist, Song
+& Ermon (2019) propose adding different noise levels to the training samples to cover the whole instance
+space, and train a neural network to simultaneously learn the score function for all noise levels.
+Although DDPMs and SGMs might appear to be different approaches at first, Ho et al. (2020) showed that
+DDPMs implicitly learn an approximation of the score function and the sampling process resembles Langevin
+dynamics. Furthermore, Song et al. (2021b) derived a unifying view of both techniques using stochastic
+differential equations (SDEs). The SGM of Song & Ermon (2019) can be seen as a discretization of the
+Brownian motion process, and the DDPM of Ho et al. (2020) as a discretization of an Ornstein–Uhlenbeck
+process. Hence, both DDPMs and SGMs are usually referred to as SGMs in the literature. This explains why
+the previous works studying the theoretical properties of diffusion models utilize the score-based formulation,
+which requires assumptions on the performance of the learned score function.
+1
+
+===== PAGE 2 =====
+Published in Transactions on Machine Learning Research (06/2024)
+In this work, we take a different approach and apply techniques developed by Mbacke et al. (2023) for VAEs
+to DDPMs, which can be seen as hierarchical VAEs with fixed encoders (Luo, 2022). This approach allows
+us to derive quantitative Wasserstein-based upper bounds, with no assumptions on the data distribution,
+no assumptions on the learned score function, and elementary proofs that do not require the SDE toolbox.
+Moreover, our bounds do not suffer from any costly discretization step, such as the one in De Bortoli (2022),
+since we consider the forward and backward processes as being discrete-time from the outset, instead of
+seeing them as discretizations of continuous-time processes.
+1.1 Related Works
+There has been a growing body of work aiming to establish theoretical results on the convergence of SGMs
+(Block et al., 2020; De Bortoli et al., 2021; Song et al., 2021a; Lee et al., 2022; De Bortoli, 2022; Kwon et al.,
+2022; Lee et al., 2023; Chen et al., 2023; Li et al., 2023; Benton et al., 2023), but these works either rely
+on strong assumptions on the data-generating distribution, derive non quantitative upper bounds, or suffer
+from exponential dependencies on some of the parameters. We manage to avoid all three of these pitfalls.
+The bounds of Lee et al. (2022) rely on very strong assumptions on the data-generating distribution, such as
+log-Sobolev inequalities, which are not realistic for real-world data distributions. Furthermore, Song et al.
+(2021a); Chen et al. (2023); Lee et al. (2023) establish upper bounds on the Kullback-Leibler (KL) divergence
+or the total variation (TV) distance between the data-generating distribution and the distribution learned by
+the diffusion model; however, as noted by Pidstrigach (2022) and Chen et al. (2023), unless one makes strong
+assumptions on the support of the data-generating distribution, KL and TV reach their maximum values.
+Such assumptions arguably do not hold for real-world data-generating distributions which are widely believed
+to satisfy the manifold hypothesis (Narayanan & Mitter, 2010; Fefferman et al., 2016; Pope et al., 2021).
+The work of Pidstrigach (2022) establishes conditions under which the support of the input distribution is
+equal to the support of the learned distribution, and generalizes the bound of Song et al. (2021a) to all
+f-divergences. Assuming L accurate score estimation, Chen et al. (2023) and Lee et al. (2023) establish
+2
+Wasserstein distance upper bounds under weaker assumptions on the data-generating distribution, but their
+Wasserstein-based bounds are not quantitative. De Bortoli (2022) derives quantitative Wasserstein distance
+upper bounds under the manifold hypothesis, but their bounds suffer from exponential dependencies on some
+of the problem parameters.
+1.2 Our contributions
+In this work, we avoid strong assumptions on the data-generating distribution, and establish a quantitative
+Wasserstein distance upper bound without exponential dependencies on problem parameters including ambi-
+ent space dimension. Moreover, a common thread in the works cited above is that their bounds depend on the
+error of the score estimator. According to Chen et al. (2023), “Providing precise guarantees for estimation of
+the score function is difficult, as it requires an understanding of the non-convex training dynamics of neural
+network optimization that is currently out of reach.” Hence, we derive upper bounds without assumptions
+on the learned score function. Instead, our bound depends on a reconstruction loss computed on a finite
+i.i.d. sample. Intuitively, we define a loss function ℓθ(x ,x ) (see equation 6), which measures the average
+T 0
+Euclidean distance between a sample x from the data-generating distribution, and the reconstruction xˆ
+0 0
+obtained by sampling noise x ∼ q(x |x ) and passing it through the backward process (parameterized by
+T T 0
+θ). This approach is motivated by the work of Mbacke et al. (2023) on VAEs.
+There are many advantages to this approach: no restrictive assumptions on the data-generating distribution,
+no exponential dependencies on the dimension, and a quantitative upper bound based on the Wasserstein
+distance. Moreover, our approach has the benefit of utilizing very simple and elementary proofs.
+2 Preliminaries
+Throughout the paper, we use lower-case letters to denote both probability measures and their densities w.r.t.
+the Lebesgue measure, and we add variables in parentheses to improve readability (e.g. q(x |x ) to indicate
+t t−1
+a time-dependent conditional distribution). We consider an instance space X which is a subset of RD with
+2
+
+===== PAGE 3 =====
+Published in Transactions on Machine Learning Research (06/2024)
+Figure 1: Denoising diffusion model
+the Euclidean distance as underlying metric, and a target data-generating distribution µ ∈ M1 (X). Notice
++
+that we do not assume µ has a density w.r.t. the Lebesgue measure. Moreover, ∥·∥ denotes the Euclidean
+(L ) norm and we write E as a shorthand for E . Given probability measures p,q ∈ M1 (X) and a
+2 p(x) x∼p(x) +
+real number k > 1, the Wasserstein distance of order k is defined as (Villani, 2009):
+(cid:18) Z (cid:19)1/k
+W (p,q) = inf ∥x − y∥k dπ(x,y) ,
+k
+π∈Γ(p,q) X
+where Γ(p,q) denotes the set of couplings of p and q, meaning the set of joint distributions on X × X with
+respective marginals p and q. We refer to the product measure p ⊗ q as the trivial coupling, and we refer to
+the Wasserstein distance of order 1 simply as the Wasserstein distance.
+2.1 Denoising Diffusion Models
+Instead of using the SDE arsenal, we present diffusion models using the DDPM formulation with discrete-
+time processes. A diffusion model comprises two discrete-time stochastic processes: a forward process and
+a backward process. Both processes are indexed by time 0 ≤ t ≤ T, where the number of time-steps T is a
+pre-set choice. See Figure 1 for an illustration, and Luo (2022) for a detailed tutorial.
+The forward process. The forward process transforms a datapoint x ∼ µ into a noise distribution
+0
+q(x |x ), via a sequence of conditional distributions q(x |x ) for 1 ≤ t ≤ T. It is assumed that the forward
+T 0 t t−1
+process is defined so that for large enough T, the distribution q(x |x ) is close to a simple noise distribution
+T 0
+p(x ) which is referred to as the prior distribution. For instance, Ho et al. (2020) chose p(x ) = N (x ;0,I),
+T T T
+the standard multivariate normal distribution.
+The backward process. The backward process is a Markov process with parametric transition kernels.
+The goal of the backward process is to implement the reverse action of the forward process: transforming
+noise samples into (approximate) samples from the distribution µ. Following Ho et al. (2020), we assume
+the backward process to be defined by Gaussian distributions p (x |x ) defined for 2 ≤ t ≤ T as
+θ t−1 t
+p (x |x ) = N (cid:0) x ;gt(x ),σ2I (cid:1) , (1)
+θ t−1 t t−1 θ t t
+and
+p (x |x ) = g1(x ), (2)
+θ 0 1 θ 1
+where the variance parameters σ2,...,σ2 ∈ R are defined by a fixed schedule, the mean functions gt :
+1 T ≥0 θ
+RD → RD are learned using a neural network (with parameters θ) for 2 ≤ t ≤ T, and g1 : RD → X is a
+θ
+separate function dependent on σ . In practice, Ho et al. (2020) used the same network for the functions gt
+1 θ
+for 2 ≤ t ≤ T, and a separate discrete decoder for g1.
+θ
+Generating new samples from a trained diffusion model is done by sampling x ∼ p (x |x ) for 1 ≤ t ≤ T,
+t−1 θ t−1 t
+starting from a noise vector x ∼ p(x ) sampled from the prior p(x ).
+T T T
+We make the following assumption on the backward process.
+Assumption 1. We assume for each 1 ≤ t ≤ T there exists a constant Kt > 0 such that for every x ,x ∈ X,
+θ 1 2
+(cid:13) (cid:13)g θ t(x 1 ) − g θ t(x 2 )(cid:13) (cid:13) ≤ K θ t ∥x 1 − x 2 ∥.
+In other words, gt is Kt-Lipschitz continuous. We discuss this assumption in Remark 3.2.
+θ θ
+3
+
+===== PAGE 4 =====
+Published in Transactions on Machine Learning Research (06/2024)
+2.2 Additional Definitions
+We define the distribution π (·|x ) as
+θ 0
+π (·|x ) = q(x |x )p (x |x )p (x |x )...p (x |x )p (·|x ). (3)
+θ 0 T 0 θ T−1 T θ T−2 T−1 θ 1 2 θ 1
+Intuitively, for each x ∈ X, π (·|x ) denotes the distribution on X obtained by reconstructing samples from
+0 θ 0
+q(x |x ) through the backward process. Another way of seeing this distribution is that for any function
+T 0
+f : X → R, the following equation holds:1
+E f(xˆ ) = E E ... E E f(xˆ ). (4)
+0 0
+πθ(xˆ0|x0) q(xT|x0)pθ(xT−1|xT) pθ(x1|x2)pθ(xˆ0|x1)
+Given a finite set S = {x1,...,xn} i ∼ id µ, we define the regenerated distribution as the following mixture:
+0 0
+1 n
+X
+µn = π (·|xi). (5)
+θ n θ 0
+i=1
+This definition is analogous to the empirical regenerated distribution defined by Mbacke et al. (2023) for
+VAEs. The distribution on X learned by the diffusion model is denoted π (·) and defined as
+θ
+π (·) = p(x )p (x |x )p (x |x )...p (x |x )p (·|x ).
+θ T θ T−1 T θ T−2 T−1 θ 1 2 θ 1
+In other words, for any function f : X → R, the expectation of f w.r.t. π (·) is
+θ
+E f(xˆ ) = E E ... E E f(xˆ ).
+0 0
+πθ(xˆ0) p(xT)pθ(xT−1|xT) pθ(x1|x2)pθ(xˆ0|x1)
+Hence, both π (·) and π (·|x ) are defined using the backward process, with the difference that π (·) starts
+θ θ 0 θ
+with the prior p(x ) = N (x ;0,I) while π (·|x ) starts with the noise distribution q(x |x ).
+T T θ 0 T 0
+Finally, we define the loss function ℓθ : X × X → R as
+ℓθ(x ,x ) = E E ... E E ∥x − xˆ ∥. (6)
+T 0 0 0
+pθ(xT−1|xT)pθ(xT−2|xT−1) pθ(x1|x2)pθ(xˆ0|x1)
+Hence, given a noise vector x and a sample x , the loss ℓθ(x ,x ) denotes the average Euclidean distance
+T 0 T 0
+between x and any sample obtained by passing x through the backward process.
+0 T
+2.3 Our Approach
+The goal is to upper-bound the distance W (µ,π (·)). Since the triangle inequality implies
+1 θ
+W (µ,π (·)) ≤ W (µ,µn) + W (µn,π (·)), (7)
+1 θ 1 θ 1 θ θ
+we can upper-bound the distance W (µ,π (·)) by upper-bounding the two expressions on the right-hand side
+1 θ
+of equation 7 separately. The upper bound on W (µ,µn) is obtained using a straightforward adaptation of a
+1 θ
+proof that was developed by Mbacke et al. (2023). First, W (µ,µn) is upper-bounded using the expectation
+1 θ
+of the loss function ℓθ, then the resulting expression is upper-bounded using a PAC-Bayesian-style expression
+dependent on the empirical risk and the prior-matching term.
+The upper bound on the second term W (µn,π (·)) uses the definition of µn. Intuitively, the difference
+1 θ θ θ
+between π (·|xi) and π (·) is determined by the corresponding initial distributions: q(x |xi) for π (·|xi),
+θ 0 θ T 0 θ 0
+and p(x ) for π (·). Hence, if the two initial distributions are close, and if the steps of the backward process
+T θ
+are smooth (see Assumption 1), then π (·|xi) and π (·) are close to each other.
+θ 0 θ
+1More formally, we give a definition of π
+θ
+(·|x0) via expectations of test functions by requiring that equation 4 holds for every
+function f in some appropriate measure-determining function class.
+4
+
+===== PAGE 5 =====
+Published in Transactions on Machine Learning Research (06/2024)
+3 Main Result
+3.1 Theorem Statement
+We are now ready to state our main result: a quantitative upper bound on the Wasserstein distance between
+the data-generating distribution µ and the learned distribution π (·).
+θ
+Theorem 3.1. Assume the instance space X has finite diameter ∆ = sup ∥x − x′∥ < ∞, and let λ > 0
+x,x′∈X
+and δ ∈ (0,1) be real numbers. Using the definitions and assumptions of the previous section, the following
+inequality holds with probability at least 1 − δ over the random draw of S = {x1,...,xn} i ∼ id µ:
+0 0
+1
+X
+n (cid:26) (cid:27) 1 "
+X
+n 1 # λ∆2
+W (µ,π (·)) ≤ E ℓθ(x ,xi) + KL(q(x |xi)||p(x )) + log + +
+1 θ n
+i=1
+q(xT|xi
+0
+) T 0 λ
+i=1
+T 0 T δ 8n
+(8)
+T ! 1 n (cid:26) (cid:27) T t−1 ! !
+Y X X Y
+Kt E E ∥x − y ∥ + Ki σ E ∥ϵ − ϵ′∥.
+t=1
+θ n
+i=1
+q(xT|xi
+0
+)p(yT) T T
+t=2 i=1
+θ t ϵ,ϵ′
+Where ϵ,ϵ′ ∼ N (0,I) are standard Gaussian vectors.
+Remark 3.1. Before presenting the proof, let us discuss Theorem 3.1.
+• Because the right-hand side of equation 8 depends on a quantity computed using a finite i.i.d. sample
+S, the bound holds with high probability w.r.t. the randomness of S. This is the price we pay for
+having a quantitative upper bound with no exponential dependencies on problem parameters and
+no assumptions on the data-generating distribution µ.
+• The first term of the right-hand side of equation 8 is the average reconstruction loss computed over
+the sample S = {x1,...,xn}. Note that for each 1 ≤ i ≤ n, the expectation of ℓθ(x |xi) is only
+0 0 T 0
+computed w.r.t. the noise distribution q(x |xi) defined by xi itself. Hence, this term measures how
+T 0 0
+well a noise vector x ∼ q(x |xi) recovers the original sample xi using the backward process, and
+T T 0 0
+averages over the set S = {x1,...,xn}.
+0 0
+• If the Lipschitz constants satisfy Kt < 1 for all 1 ≤ t ≤ T, then the larger T is, the smaller the
+θ
+upper bound gets. This is because the product of Kt’s then converges to 0. In Remark 3.2 below,
+θ
+we show that the assumption that Kt < 1 for all t is a quite reasonable one.
+θ
+• The hyperparameter λ controls the trade-off between the prior-matching (KL) term and the diameter
+term ∆2. If Kt < 1 for all 1 ≤ t ≤ T and T → ∞, then the convergence of the bound largely depends
+8n θ
+on the choice of λ. In that case, λ ∝ n1/2 leads to a faster convergence, while λ ∝ n leads to a
+slower convergence to a smaller quantity. This is because the bound of Mbacke et al. (2023) stems
+from PAC-Bayesian theory, where this trade-off is common, see e.g. Alquier (2021).
+• The last term of equation 8 does not depend on the sample size n. Hence, the upper bound given
+by Theorem 3.1 does not converge to 0 as n → ∞. However, if the Lipschitz factors (Kt) are
+θ 1≤t≤T
+all less than 1, then this term can be very small, specially in low dimensional spaces.
+3.2 Proof of the main theorem
+The following result is an adaptation of a result by Mbacke et al. (2023).
+Lemma 3.2. Let λ > 0 and δ ∈ (0,1) be real numbers. With probability at least 1 − δ over the randomness
+of the sample S = {x1,...,xn} i ∼ id µ, the following holds:
+0 0
+1
+X
+n (cid:26) (cid:27) 1 "
+X
+n 1 # λ∆2
+W (µ,µn) ≤ E ℓθ(x ,xi) + KL(q(x |xi)||p(x )) + log + . (9)
+1 θ n
+i=1
+q(xT|xi
+0
+) T 0 λ
+i=1
+T 0 T δ 8n
+5
+
+===== PAGE 6 =====
+Published in Transactions on Machine Learning Research (06/2024)
+The proof of this result is a straightforward adaptation of Mbacke et al. (2023, Lemma D.1). We provide
+the proof in the supplementary material (Section A.1) for completeness.
+Now, let us focus our attention on the second term of the right-hand side of equation 7, namely W (µn,π (·)).
+1 θ θ
+This part is trickier than for VAEs, for which the generative model’s distribution is simply a pushforward
+measure. Here, we have a non-deterministic sampling process with T steps.
+Assumption 1 leads to the following lemma on the backward process.
+Lemma 3.3. For any given x ,y ∈ X we have
+1 1
+E E ∥x − y ∥ ≤ K1 ∥x − y ∥.
+0 0 θ 1 1
+pθ(x0|x1)pθ(y0|y1)
+Moreover, if 2 ≤ t ≤ T, then for any given x ,y ∈ X we have
+t t
+E E ∥x − y ∥ ≤ Kt ∥x − y ∥ + σ E ∥ϵ − ϵ′∥,
+t−1 t−1 θ t t t
+pθ(xt−1|xt)pθ(yt−1|yt) ϵ,ϵ′
+where ϵ,ϵ′ ∼ N (0,I), meaning E is a shorthand for E .
+ϵ,ϵ′ ϵ,ϵ′∼N(0,I)
+Proof. For the first part, let x ,y ∈ X. Since according to equation 2 we have p (x |x ) = δ (x ) and
+p (y |y ) = δ (y ), then
+1 1 θ 0 1 g
+θ
+1(x1) 0
+θ 0 1 g
+θ
+1(y1) 0
+E E ∥x 0 − y 0 ∥ = (cid:13) (cid:13)g θ 1(x 1 ) − g θ 1(y 1 )(cid:13) (cid:13) ≤ K θ 1 ∥x 1 − y 1 ∥.
+pθ(x0|x1)pθ(y0|y1)
+For the second part, let 2 ≤ t ≤ T and x ,y ∈ X. Since p (x |x ) = N (cid:0) x ;gt(x ),σ2I (cid:1) by equation 1,
+t t θ t−1 t t−1 θ t t
+the reparameterization trick (Kingma & Welling, 2014) implies that sampling
+x ∼ p (x |x )
+t−1 θ t−1 t
+is equivalent to setting
+x = gt(x ) + σ ϵ , with ϵ ∼ N (0,I). (10)
+t−1 θ t t t t
+Using equation 10, the triangle inequality, and Assumption 1, we obtain
+E E ∥x t−1 − y t−1 ∥ = E E(cid:13) (cid:13)g θ t(x t ) + σ t ϵ t − g θ t(y t ) − σ t ϵ′ t (cid:13) (cid:13)
+pθ(xt−1|xt)pθ(yt−1|yt) ϵt ϵ′
+t
+≤ E E(cid:13) (cid:13)g θ t(x t ) − g θ t(y t )(cid:13) (cid:13) + σ t E E∥ϵ t − ϵ′ t ∥
+ϵt ϵ′
+t
+ϵt ϵ′
+t
+= (cid:13) (cid:13)g θ t(x t ) − g θ t(y t )(cid:13) (cid:13) + σ t E E∥ϵ t − ϵ′ t ∥
+ϵt ϵ′
+t
+≤ Kt ∥x − y ∥ + σ EE∥ϵ − ϵ′∥,
+θ t t t
+ϵ ϵ′
+where ϵ,ϵ′ ∼ N (0,I).
+Next, we can use the inequalities of Lemma 3.3 to prove the following result.
+Lemma 3.4. Let T ≥ 1. The following inequality holds:
+E E E E ... E E ∥x − y ∥ ≤
+0 0
+pθ(xT−1|xT)pθ(yT−1|yT)pθ(xT−2|xT−1)pθ(yT−2|yT−1) pθ(x0|x1)pθ(y0|y1)
+T ! T t−1 ! !
+Y X Y
+Kt ∥x − y ∥ + Ki σ E [∥ϵ − ϵ′∥],
+θ T T θ t
+ϵ,ϵ′
+t=1 t=2 i=1
+where ϵ,ϵ′ ∼ N (0,I).
+Proof Idea. Lemma 3.4 is proven by induction using Lemma 3.3 in the induction step. The details are in
+the supplementary material (Section A.2).
+6
+
+===== PAGE 7 =====
+Published in Transactions on Machine Learning Research (06/2024)
+Using the two previous lemmas, we obtain the following upper bound on W (µn,π (·)).
+1 θ θ
+Lemma 3.5. The following inequality holds:
+T ! 1 n (cid:26) (cid:27) T t−1 ! !
+Y X X Y
+W (µn,π (·)) ≤ Kt E E ∥x − y ∥ + Ki σ E ∥ϵ − ϵ′∥,
+1 θ θ
+t=1
+θ n
+i=1
+q(xT|xi
+0
+)p(yT) T T
+t=2 i=1
+θ t ϵ,ϵ′
+where ϵ,ϵ′ ∼ N (0,I).
+Proof. Using the definition of W , the trivial coupling, the definitions of µn and π (·), and Lemma 3.4, we
+1 θ θ
+get
+Z
+W (µn,π (·)) = inf d(x,y)dπ(x,y)
+1 θ θ
+π∈Γ(µn
+θ
+,πθ(·))
+≤ E E [∥x − y∥]
+x∼µn
+θ
+y∼πθ(y)
+1 n (cid:26) (cid:27)
+X
+= E E E E ... E E ∥x − y ∥
+n
+i=1
+q(xT|xi
+0
+)p(yT)pθ(xT−1|xT)pθ(yT−1|yT) pθ(x0|x1)pθ(y0|y1) 0 0
+1 X n    Y T !  X T  t Y −1    
+≤ n
+i=1
+q(xT E |xi
+0
+)p( E yT) 
+t=1
+K θ t ∥x T − y T ∥ + 
+t=2
+
+j=1
+K θ j σ t ϵ E ,ϵ′ [∥ϵ − ϵ′∥]  
+T ! 1 n (cid:26) (cid:27) T t−1 ! !
+Y X X Y
+= Kt E E ∥x − y ∥ + Ki σ E ∥ϵ − ϵ′∥.
+t=1
+θ n
+i=1
+q(xT|xi
+0
+)p(yT) T T
+t=2 i=1
+θ t ϵ,ϵ′
+Combining Lemmas 3.2 and 3.5 with equation 7 yields Theorem 3.1 .
+3.3 Special case using the forward process of Ho et al. (2020)
+Theorem 3.1 establishes a general upper bound that holds for any forward process, as long as the backward
+process satisfies Assumption 1. In this section, we specialize the statement of the theorem to the particular
+case of the forward process defined by Ho et al. (2020).
+Let X ⊆ RD. In Ho et al. (2020), the forward process is a Gauss-Markov process with transition densities
+defined as
+√
+q(x |x ) = N (x ; α x ,(1 − α )I),
+t t−1 t t t−1 t
+where α ,...,α is a fixed noise schedule such that 0 < α < 1 for all t. This definition implies that at each
+1 T t
+time step 1 ≤ t ≤ T,
+q(x |x ) = N (cid:0) x ; √ α¯ x ,(1 − α¯ )I (cid:1) , with α¯ = Y t α .
+t 0 t t 0 t t i
+i=1
+The optimization objective to train the backward process ensures that for each time step t the distribution
+p (x |x ) remains close to the ground-truth distribution q(x |x ,x ) given by
+θ t−1 t t−1 t 0
+q(x |x ,x ) = N (cid:0) x ;µt(x ,x ),σ2I (cid:1) ,
+t−1 t 0 t−1 q t 0 t
+where
+√ √
+α (1 − α¯ ) α¯ (1 − α )
+µt(x ,x ) = t t−1 x + t−1 t x . (11)
+q t 0 1 − α¯ t 1 − α¯ 0
+t t
+Now, we discuss Assumption 1 under these definitions.
+7
+
+===== PAGE 8 =====
+Published in Transactions on Machine Learning Research (06/2024)
+Remark 3.2. We can get a glimpse at the range of Kt for a trained DDPM by looking at the distribution
+θ
+q(x |x ,x ), since p (x |x ) is optimized to be as close as possible to q(x |x ,x ).
+t−1 t 0 θ t−1 t t−1 t 0
+For a given x ∼ µ, let us take a look at the Lipschitz norm of x 7→ µt(x,x ). Using equation 11, we have
+0 q 0
+√
+α (1 − α¯ )
+µt(x ,x ) − µt(y ,x ) = t t−1 (x − y ).
+q t 0 q t 0 1 − α¯ t t
+t
+Hence, x 7→ µt(x,x ) is K′-Lipschitz continuous with
+q 0 t
+√
+α (1 − α¯ )
+K′ = t t−1 .
+t 1 − α¯
+t
+Now, if α < 1 for all 1 ≤ t ≤ T, then we have 1 − α¯ > 1 − α¯ which implies K′ < 1 for all 1 ≤ t ≤ T.
+t t t−1 t
+Remark 3.2 shows that the Lipschitz norm of the mean function µt(·,x ) does not depend on x . Indeed,
+q 0 0
+√
+looking at the previous equation, we can see that for any initial x , the Lipschitz norm K′ = αt(1−α¯t−1)
+only depends on the noise schedule, not x itself. Since gt is optimi 0 zed to match to µt(·,x ) t , for eac 1− h α¯ x t in
+0 θ q 0 0
+the training set, and all the functions µt(·,x ) have the same Lipschitz norm K′, we believe it is reasonable
+q 0 t
+to assume gt is Lipschitz continuous as well. This is the intuition behind Assumption 1.
+θ
+The prior-matching term. With the definitions of this section, the prior matching term
+KL(q(x |x )||p(x )) has the following closed form:
+T 0 T
+1 h i
+KL(q(x |x )||p(x )) = −Dlog(1 − α¯ ) − Dα¯ + α¯ ∥x ∥2 .
+T 0 T 2 T T T 0
+Upper-bounds on the average distance between Gaussian vectors. If ϵ,ϵ′ are D-dimensional
+vectors sampled from N (0,I), then
+√
+E ∥ϵ − ϵ′∥ ≤ 2D.
+ϵ,ϵ′
+Moreover, since q(x |xi) = N (cid:0) x ;α¯ xi,(1 − α¯ )I (cid:1) and the prior p(y ) = N (y ;0,I),
+T 0 T T 0 T T T
+q
+E E ∥x T − y T ∥ ≤ α¯ T (cid:13) (cid:13)x 0 i (cid:13) (cid:13) 2 + (2 − α¯ T )D.
+q(xT|xi
+0
+)p(yT)
+Special case of the main theorem. With the definitions of this section, the inequality of Theorem 3.1
+implies that with probability at least 1 − δ over the randomness of {x1,...,xn} i ∼ id µ:
+0 0
+W 1 (µ,π θ (·)) ≤ n 1 X
+i=
+n
+1
+(cid:26) q(xT E |xi
+0
+) ℓθ(x T ,x 0 i) (cid:27) + λ 1 " 1 2 X
+i=
+n
+1
+h −Dlog(1 − α¯ T ) − Dα¯ T + α¯ T (cid:13) (cid:13)x 0 i(cid:13) (cid:13) 2 i + log 1 δ # +
+λ 8 ∆ n 2 + Y T K θ t ! n 1 X n q α¯ T (cid:13) (cid:13)x 0 i (cid:13) (cid:13) 2 + (2 − α¯ T )D + √ 2D X T t Y −1 K θ i ! σ t ! .
+t=1 i=1 t=2 i=1
+4 Conclusion
+This note presents a novel upper bound on the Wasserstein distance between the data-generating distribution
+and the distribution learned by a diffusion model. Unlike previous works in the field, our main result
+simultaneously avoids strong assumptions on the data-generating distribution, assumptions on the learned
+score function, and exponential dependencies, while still providing a quantitative upper bound. However,
+our bound holds with high probability on the randomness of a finite i.i.d. sample, on which a loss function is
+computed. Since the loss is a chain of expectations w.r.t. Gaussian distributions, it can either be estimated
+with high precision or upper bounded using the properties of Gaussian distributions.
+8
+
+===== PAGE 9 =====
+Published in Transactions on Machine Learning Research (06/2024)
+Acknowledgments
+This research is supported by the Canada CIFAR AI Chair Program, and the NSERC Discovery grant
+RGPIN-2020- 07223. The authors sincerely thank Pascal Germain for interesting discussions and suggestions.
+The first author thanks Mathieu Bazinet and Florence Clerc for proof-reading the manuscript.
+References
+Pierre Alquier. User-friendly introduction to PAC-Bayes bounds. arXiv preprint arXiv:2110.11216, 2021.
+Joe Benton, Valentin De Bortoli, Arnaud Doucet, and George Deligiannidis. Nearly d-Linear Convergence
+Bounds for Diffusion Models via Stochastic Localization. arXiv preprint arXiv:2308.03686, 2023.
+Adam Block, Youssef Mroueh, and Alexander Rakhlin. Generative Modeling with Denoising Auto-Encoders
+and Langevin Sampling. arXiv preprint arXiv:2002.00107, 2020.
+Nanxin Chen, Yu Zhang, Heiga Zen, Ron J Weiss, Mohammad Norouzi, and William Chan. WaveGrad:
+Estimating Gradients for Waveform Generation. In International Conference on Learning Representations,
+2021.
+Sitan Chen, Sinho Chewi, Jerry Li, Yuanzhi Li, Adil Salim, and Anru Zhang. Sampling is as easy as learning
+the score: theory for diffusion models with minimal data assumptions. In The Eleventh International
+Conference on Learning Representations, 2023.
+Valentin De Bortoli. Convergence of denoising diffusion models under the manifold hypothesis. Transactions
+on Machine Learning Research, 2022. ISSN 2835-8856.
+Valentin De Bortoli, James Thornton, Jeremy Heng, and Arnaud Doucet. Diffusion Schrödinger Bridge with
+Applications to Score-Based Generative Modeling. In Advances in Neural Information Processing Systems,
+volume 34, pp. 17695–17709, 2021.
+Prafulla Dhariwal and Alexander Nichol. Diffusion Models Beat GANs on Image Synthesis. In Advances in
+Neural Information Processing Systems, volume 34, pp. 8780–8794, 2021.
+Charles Fefferman, Sanjoy Mitter, and Hariharan Narayanan. Testing the Manifold Hypothesis. Journal of
+the American Mathematical Society, 29(4):983–1049, 2016.
+Ian Goodfellow, Jean Pouget-Abadie, Mehdi Mirza, Bing Xu, David Warde-Farley, Sherjil Ozair, Aaron
+Courville, and Yoshua Bengio. Generative Adversarial Networks. In Advances in Neural Information
+Processing Systems, volume 27, 2014.
+Jonathan Ho, Ajay Jain, and Pieter Abbeel. Denoising Diffusion Probabilistic Models. In Advances in Neural
+Information Processing Systems, volume 33, pp. 6840–6851, 2020.
+Jonathan Ho, Chitwan Saharia, William Chan, David J Fleet, Mohammad Norouzi, and Tim Salimans.
+Cascaded Diffusion Models for High Fidelity Image Generation. Journal of Machine Learning Research,
+23(1):2249–2281, 2022.
+Aapo Hyvärinen and Peter Dayan. Estimation of Non-Normalized Statistical Models by Score Matching.
+Journal of Machine Learning Research, 6(4), 2005.
+Diederik P. Kingma and M. Welling. Auto-Encoding Variational Bayes. CoRR, abs/1312.6114, 2014.
+Dohyun Kwon, Ying Fan, and Kangwook Lee. Score-based Generative Modeling Secretly Minimizes the
+Wasserstein Distance. Advances in Neural Information Processing Systems, 35:20205–20217, 2022.
+Holden Lee, Jianfeng Lu, and Yixin Tan. Convergence for score-based generative modeling with polynomial
+complexity. In Advances in Neural Information Processing Systems, volume 35, pp. 22870–22882, 2022.
+Holden Lee, Jianfeng Lu, and Yixin Tan. Convergence of score-based generative modeling for general data
+distributions. In International Conference on Algorithmic Learning Theory, pp. 946–985. PMLR, 2023.
+9
+
+===== PAGE 10 =====
+Published in Transactions on Machine Learning Research (06/2024)
+Gen Li, Yuting Wei, Yuxin Chen, and Yuejie Chi. Towards Faster Non-Asymptotic Convergence for Diffusion-
+Based Generative Models. arXiv preprint arXiv:2306.09251, 2023.
+Haoying Li, Yifan Yang, Meng Chang, Shiqi Chen, Huajun Feng, Zhihai Xu, Qi Li, and Yueting Chen.
+SRDiff: Single Image Super-Resolution with Diffusion Probabilistic Models. Neurocomputing, 479:47–59,
+2022.
+Calvin Luo. Understanding Diffusion Models: A Unified Perspective. arXiv preprint arXiv:2208.11970, 2022.
+Sokhna Diarra Mbacke, Florence Clerc, and Pascal Germain. Statistical Guarantees for Variational Autoen-
+coders using PAC-Bayesian Theory. In Advances in Neural Information Processing Systems, 2023.
+Hariharan Narayanan and Sanjoy Mitter. Sample Complexity of Testing the Manifold Hypothesis. In
+Advances in Neural Information Processing Systems, volume 23, 2010.
+Jakiw Pidstrigach. Score-Based Generative Models Detect Manifolds. In Advances in Neural Information
+Processing Systems, volume 35, pp. 35852–35865, 2022.
+Phil Pope, Chen Zhu, Ahmed Abdelkader, Micah Goldblum, and Tom Goldstein. The Intrinsic Dimension
+of Images and Its Impact on Learning. In International Conference on Learning Representations, 2021.
+Vadim Popov, Ivan Vovk, Vladimir Gogoryan, Tasnima Sadekova, and Mikhail Kudinov. Grad-TTS: A
+Diffusion Probabilistic Model for Text-to-Speech. In International Conference on Machine Learning, pp.
+8599–8608. PMLR, 2021.
+Danilo Jimenez Rezende, Shakir Mohamed, and Daan Wierstra. Stochastic Backpropagation and Approxi-
+mate Inference in Deep Generative Models. In International Conference on Machine Learning, pp. 1278–
+1286. PMLR, 2014.
+Hiroshi Sasaki, Chris G Willcocks, and Toby P Breckon. UNIT-DDPM: UNpaired Image Translation with
+Denoising Diffusion Probabilistic Models. arXiv preprint arXiv:2104.05358, 2021.
+Jascha Sohl-Dickstein, Eric Weiss, Niru Maheswaranathan, and Surya Ganguli. Deep Unsupervised Learning
+using Nonequilibrium Thermodynamics. In International Conference on Machine Learning, pp. 2256–2265.
+PMLR, 2015.
+Yang Song and Stefano Ermon. Generative Modeling by Estimating Gradients of the Data Distribution. In
+Advances in Neural Information Processing Systems, volume 32, 2019.
+Yang Song, Conor Durkan, Iain Murray, and Stefano Ermon. Maximum Likelihood Training of Score-Based
+Diffusion Models. In Advances in Neural Information Processing Systems, volume 34, 2021a.
+Yang Song, Jascha Sohl-Dickstein, Diederik P Kingma, Abhishek Kumar, Stefano Ermon, and Ben Poole.
+Score-Based Generative Modeling through Stochastic Differential Equations. In International Conference
+on Learning Representations, 2021b.
+Brandon Trabucco, Kyle Doherty, Max Gurinas, and Ruslan Salakhutdinov. Effective Data Augmentation
+With Diffusion Models. arXiv preprint arXiv:2302.07944, 2023.
+Cédric Villani. Optimal Transport: Old and New, volume 338. Springer, 2009.
+Pascal Vincent. A Connection Between Score Matching and Denoising Autoencoders. Neural Computation,
+23(7):1661–1674, 2011.
+Linqi Zhou, Yilun Du, and Jiajun Wu. 3D Shape Generation and Completion through Point-Voxel Diffusion.
+In Proceedings of the IEEE/CVF International Conference on Computer Vision, pp. 5826–5835, 2021.
+10
+
+===== PAGE 11 =====
+Published in Transactions on Machine Learning Research (06/2024)
+A Omitted Proofs
+A.1 Proof of Lemma 3.2
+Recall Lemma 3.2 states that the following inequality holds with probability 1 − δ:
+1
+X
+n (cid:26) (cid:27) 1 "
+X
+n 1 # λ∆2
+W (µ,µn) ≤ E ℓθ(x ,xi) + KL(q(x |xi)||p(x )) + log + .
+1 θ n
+i=1
+q(xT|xi
+0
+) T 0 λ
+i=1
+T 0 T δ 8n
+Proof of Lemma 3.2. Using the trivial coupling (product of marginals), the definition of µn (equation 5),
+θ
+and the definition of the loss function ℓθ, we get
+Z
+W (µ,µn) = inf ∥x − y∥ dπ(x,y)
+1 θ
+π∈Γ(µ,µn θ ) X×X
+Z Z
+≤ ∥x − y∥ dµ(x)dµn(y)
+θ
+X X
+= E E ∥x − y∥
+x∼µy∼µn
+θ
+" 1 n (cid:18) (cid:19)#
+X
+= E E E ... E E ∥x − y∥
+x∼µ n
+i=1
+q(xT|xi
+0
+)pθ(xT−1|xT) pθ(x1|x2)pθ(y|x1)
+" 1 n #
+X
+= E E ℓθ(x ,x) .
+x∼µ n
+i=1
+q(xT|xi
+0
+) T
+Using Mbacke et al. (2023, Lemma B.1), the following inequality holds with probability 1 − δ:
+1 n (cid:26) (cid:27) 1 " n 1
+X X
+W (µ,µn) ≤ E ℓθ(x ,xi) + KL(q(x |xi)||p(x )) + log +
+1 θ n i=1 q(xT|xi 0 ) T 0 λ i=1 T 0 T δ (12)
+nlog E E eλ (E y0∼µ [ ℓθ(xT,y0) ] − n 1 Pn i=1 ℓθ(xT,x0) ) (cid:21) .
+x0∼µ⊗n xT∼p(xT)
+Now, it remains to upper-bound the exponential moment of equation 9. If sup ∥x − x′∥ = ∆ < ∞,
+x,x′∈X
+and λ > 0 is a real number, then the definition of the loss function ℓθ and Hoeffding’s lemma yield
+nlog x0 E ∼µxT∼ E p(xT) eλ (E x′∼µ [ ℓθ(xT,x′) ] − n 1 Pn i=1 ℓθ(xT,x0) ) ≤ nlogexp (cid:20) λ 8 2 n ∆ 2 2(cid:21) = λ2 8 ∆ n 2 .
+A.2 Proof of Lemma 3.4
+Recall Lemma 3.4 states that the following inequality holds:
+E E E E ... E E ∥x − y ∥ ≤
+0 0
+pθ(xT−1|xT)pθ(yT−1|yT)pθ(xT−2|xT−1)pθ(yT−2|yT−1) pθ(x0|x1)pθ(y0|y1)
+T ! T t−1 ! !
+Y X Y
+Kt ∥x − y ∥ + Ki σ E [∥ϵ − ϵ′∥],
+θ T T θ t
+ϵ,ϵ′
+t=1 t=2 i=1
+Proof of Lemma 3.4. Let’s do a proof by induction on T.
+11
+
+===== PAGE 12 =====
+Published in Transactions on Machine Learning Research (06/2024)
+• Base case. T = 1. The inequality becomes
+E E ∥x − y ∥ ≤ K1 ∥x − y ∥ (13)
+0 0 θ 1 1
+pθ(x0|x1)pθ(y0|y1)
+which holds by the first part of Lemma 3.3.
+• Induction step. Assume T > 1. The induction hypothesis is
+E E ... E E ∥x − y ∥ ≤
+0 0
+pθ(xT−2|xT−1)pθ(yT−2|yT−1) pθ(x0|x1)pθ(y0|y1)
+T−1 ! T−1 t−1 ! ! (14)
+Y X Y
+Kt ∥x − y ∥ + Ki σ E [∥ϵ − ϵ′∥].
+θ T−1 T−1 θ t
+ϵ,ϵ′
+t=1 t=2 i=1
+Using the induction hypothesis, the linearity of the expectation, Lemma 3.3 with t := T,
+E E ... E E ∥x − y ∥
+0 0
+pθ(xT−1|xT)pθ(yT−1|yT) pθ(x0|x1)pθ(y0|y1)
+" T−1 ! T−1 t−1 ! ! #
+Y X Y
+≤ E E Kt ∥x − y ∥ + Ki σ E [∥ϵ − ϵ′∥]
+θ T−1 T−1 θ t
+pθ(xT−1|xT)pθ(yT−1|yT)
+t=1 t=2 i=1
+ϵ,ϵ′
+T−1 ! T−1 t−1 ! !
+Y X Y
+= Kt E E [∥x − y ∥] + Ki σ E [∥ϵ − ϵ′∥]
+θ T−1 T−1 θ t
+t=1
+pθ(xT−1|xT)pθ(yT−1|yT)
+t=2 i=1
+ϵ,ϵ′
+T−1 !(cid:20) (cid:21) T−1 t−1 ! !
+Y X Y
+≤ Kt Kt ∥x − y ∥ + σ E ∥ϵ − ϵ′∥ + Ki σ E [∥ϵ − ϵ′∥]
+θ θ T T T θ t
+ϵ,ϵ′ ϵ,ϵ′
+t=1 t=2 i=1
+T ! " T−1 ! T−1 t−1 ! #
+Y Y X Y
+= Kt ∥x − y ∥ + Kt σ + Ki σ E [∥ϵ − ϵ′∥]
+θ T T θ T θ t
+ϵ,ϵ′
+t=1 t=1 t=2 i=1
+T ! " T−1 ! T−1 t−1 ! #
+Y Y X Y
+= Kt ∥x − y ∥ + Ki σ + Ki σ E [∥ϵ − ϵ′∥]
+θ T T θ T θ t
+ϵ,ϵ′
+t=1 i=1 t=2 i=1
+T ! T t−1 ! !
+Y X Y
+= Kt ∥x − y ∥ + Ki σ E [∥ϵ − ϵ′∥].
+θ T T θ t
+ϵ,ϵ′
+t=1 t=2 i=1
+B Numerical Experiments
+The goal of these experiments is to assess the numerical value of the bound of Theorem 3.1 on a synthetic
+dataset. The data-generating distribution is chosen to be the uniform distribution on the square of side 2,
+centered at the origin. Figure 2 shows samples from this target distribution.
+The backward process uses a shared network with fully connected layers, and 128 hidden units each. The
+model is trained on 50,000 samples from the original distribution, and the bound is computed with n = 5,000
+independent samples. Samples from the trained model are shown in Figure 3.
+We computed the bound for different values of λ. Given that the datapoints are confined to a square of side
+2, using the primal form of the Wasserstein distance yields a straightforward upper bound of W (µ,π (·)) ≤
+√ 1 θ
+8 ≈ 2.828. We estimated the Lipschitz norms Kt using K′ from Remark 3.2, and the expected norms in
+θ t
+the last two terms of Theorem 3.1 are estimated using 106 independent samples from each distribution.
+λ n/10 n/5 n/2 n n/0.5 n/0.1
+Bound value 1.124 1.231 1.5181 2.035 3.056 11.061
+12
+
+===== PAGE 13 =====
+Published in Transactions on Machine Learning Research (06/2024)
+Figure 2: The points represent 2000 samples from Figure 3: The points represent 2000 samples from
+the target data-generating distribution. the trained diffusion model.
+13

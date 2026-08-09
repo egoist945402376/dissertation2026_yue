@@ -1,0 +1,33 @@
+% Required packages in the preamble:
+% \usepackage{booktabs}
+% \usepackage{graphicx}
+% \usepackage{makecell}
+
+\begin{table}[htbp]
+    \centering
+    \caption{Bound terms and comparison with the paper bound for different values of $\lambda$.}
+    \label{tab:bound_terms_by_lambda}
+    \resizebox{\textwidth}{!}{%
+    \begin{tabular}{lrrrrrrrrr}
+        \toprule
+        $\lambda$ &
+        \makecell{Reconstruction} &
+        \makecell{Prior matching\\and confidence} &
+        \makecell{Diameter\\term} &
+        \makecell{Terminal\\mismatch} &
+        \makecell{Accumulated\\noise} &
+        \makecell{Total\\bound} &
+        \makecell{Paper\\bound} &
+        \makecell{Absolute\\difference} &
+        \makecell{Relative\\difference (\%)} \\
+        \midrule
+        $n/10$  & 1.054902554 & 0.006126788 & 0.1 & 0 & 0.000212518 & 1.161241889 & 1.124  & 0.037241889 & 3.313335320\% \\
+        $n/5$   & 1.054902554 & 0.003063394 & 0.2 & 0 & 0.000212518 & 1.258178592 & 1.231  & 0.027178592 & 2.207846607\% \\
+        $n/2$   & 1.054902554 & 0.001225358 & 0.5 & 0 & 0.000212518 & 1.556340456 & 1.5181 & 0.038240456 & 2.518968185\% \\
+        $n$     & 1.054902554 & 0.000612679 & 1   & 0 & 0.000212518 & 2.055727720 & 2.035  & 0.020727720 & 1.018561192\% \\
+        $n/0.5$ & 1.054902554 & 0.000306339 & 2   & 0 & 0.000212518 & 3.055421352 & 3.056  & 0.000578648 & 0.018934804\% \\
+        $n/0.1$ & 1.054902554 & 0.0000613   & 10  & 0 & 0.000212518 & 11.05517673 & 11.061 & 0.005823265 & 0.052646823\% \\
+        \bottomrule
+    \end{tabular}%
+    }
+\end{table}

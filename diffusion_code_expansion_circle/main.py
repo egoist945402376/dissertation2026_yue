@@ -7,7 +7,23 @@ from model import NoiseScheduler, ForwardProcess, BackwardProcess, DiffusionMode
 from pac_bayes import compute_bound
 
 
+def circle_data(num_samples, seed=None):
+    """Sample uniformly from the unit circle.
+
+    The target distribution is supported on the circumference, while the
+    instance space remains [-1, 1]^2.  Therefore the certificate continues
+    to use the same conservative diameter Delta = sqrt(8) as the paper.
+    """
+    rng = np.random.default_rng(seed)
+    theta = rng.uniform(0, 2 * np.pi, num_samples)
+    x = np.cos(theta)
+    y = np.sin(theta)
+    X = np.stack((x, y), axis=1)
+    return TensorDataset(torch.from_numpy(X.astype(np.float32)))
+
+
 def rectangle_data(num_samples):
+    """Original paper dataset, retained only for backwards compatibility."""
     rng = np.random.default_rng()
     x = rng.uniform(-1, 1, num_samples)
     y = rng.uniform(-1, 1, num_samples)
@@ -25,34 +41,34 @@ if __name__ == '__main__':
     diff_model = DiffusionModel(forward_process=fp, backward_process=bp)
 
     # the data
-    d = rectangle_data(num_samples=50000)
-    dl = dataloader = DataLoader(d.tensors[0], batch_size=100, shuffle=True)
+    d = circle_data(num_samples=50000)
+    dl = DataLoader(d.tensors[0], batch_size=100, shuffle=True)
 
     # training
     diff_model.train_model(train_loader=dl, epochs=500, lr=1e-4)
-    torch.save(diff_model.backward_process.state_dict(), 'backward_process_2.pt')
+    torch.save(diff_model.backward_process.state_dict(), 'circle_backward_process.pt')
 
     # compute bound
-    bound_data = rectangle_data(num_samples=5000)
+    bound_data = circle_data(num_samples=5000)
     bound_loader = DataLoader(bound_data.tensors[0], batch_size=100, shuffle=True)
     bound = compute_bound(data_loader=bound_loader, diff_model=diff_model, diameter=np.sqrt(8), lamda=5000, delta=0.05, dim=2)
 
     # show samples and originals
     plt.figure()
-    real_samples = rectangle_data(num_samples=2000)
+    real_samples = circle_data(num_samples=2000)
     plt.scatter(x=real_samples.tensors[0][:, 0], y=real_samples.tensors[0][:, 1], alpha=0.5)
-    plt.title('Real samples')
-    plt.savefig('real_samples_2.png')
+    plt.gca().set_aspect('equal', adjustable='box')
+    plt.title('Real samples: unit circle')
+    plt.savefig('circle_real_samples.png')
 
     plt.figure()
     samples = diff_model.generate(2000, xlim=(-1, 1), ylim=(-1, 1))
     plt.scatter(samples[:, 0], samples[:, 1], alpha=0.5)
-    plt.title('Fake samples')
-    plt.savefig('fake_samples_2.png')
+    plt.gca().set_aspect('equal', adjustable='box')
+    plt.title('Generated samples: unit circle')
+    plt.savefig('circle_fake_samples.png')
 
     print('Bound value: ', bound)
     plt.show()
-
-
 
 

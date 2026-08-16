@@ -3,7 +3,7 @@ import torch
 from torch.utils.data import DataLoader
 import matplotlib.pyplot as plt
 
-from main import rectangle_data
+from main import circle_data
 from model import NoiseScheduler, ForwardProcess, BackwardProcess, DiffusionModel
 from pac_bayes import empirical_risk, prior_matching, avg_distance, compute_last_term
 
@@ -35,17 +35,18 @@ if __name__ == '__main__':
     # rebuild the exact same architecture used in main.py, then load the trained weights
     ns = NoiseScheduler(timesteps=1000, beta_start=1e-4, beta_end=0.02, beta_schedule='linear')
     bp = BackwardProcess(hidden_layers=3, hidden_dim=128, embed_size=128, time_embed_type='sinusoidal', input_embed_type='sinusoidal')
-    bp.load_state_dict(torch.load('backward_process.pt'))
+    bp.load_state_dict(torch.load('circle_backward_process.pt', map_location='cpu'))
     fp = ForwardProcess(noise_scheduler=ns)
     diff_model = DiffusionModel(forward_process=fp, backward_process=bp)
 
     # bound: compute the lambda-independent terms once, then sweep over lambda
-    bound_data = rectangle_data(num_samples=5000)
+    bound_data = circle_data(num_samples=5000)
     bound_loader = DataLoader(bound_data.tensors[0], batch_size=100, shuffle=True)
     n = len(bound_loader.dataset)
     diameter = np.sqrt(8)
     delta = 0.05
 
+    print('Dataset: unit circle in [-1, 1]^2; certificate diameter: sqrt(8)')
     print('Computing the lambda-independent terms (this is the slow part, run once)...')
     emp_risk, prior_match, avg_dist_term, last_term = compute_bound_terms(bound_loader, diff_model, dim=2)
 
@@ -54,6 +55,3 @@ if __name__ == '__main__':
     for label, lamda in lambdas.items():
         bound = bound_for_lambda(emp_risk, prior_match, avg_dist_term, last_term, lamda, delta, diameter, n)
         print(f'{label}\t{lamda:.1f}\t{float(bound):.4f}')
-
-    print('\nPaper (Table, page 12): n/10=1.124  n/5=1.231  n/2=1.518  n=2.035  n/0.5=3.056  n/0.1=11.061')
-

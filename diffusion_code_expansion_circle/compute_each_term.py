@@ -14,19 +14,9 @@ import numpy as np
 import torch
 from torch.utils.data import DataLoader
 
-from main import rectangle_data
+from main import circle_data
 from model import BackwardProcess, DiffusionModel, ForwardProcess, NoiseScheduler
 from pac_bayes import avg_distance, compute_last_term, empirical_risk, prior_matching
-
-
-PAPER_BOUNDS = {
-    "n/10": 1.124,
-    "n/5": 1.231,
-    "n/2": 1.5181,
-    "n": 2.035,
-    "n/0.5": 3.056,
-    "n/0.1": 11.061,
-}
 
 
 def compute_lambda_independent_terms(data_loader, diff_model, dim):
@@ -113,13 +103,13 @@ def parse_args():
     parser.add_argument(
         "--model",
         type=Path,
-        default=Path("backward_process.pt"),
+        default=Path("circle_backward_process.pt"),
         help="Path to the saved backward-process state dict.",
     )
     parser.add_argument(
         "--output",
         type=Path,
-        default=Path("bound_terms_by_lambda_1.csv"),
+        default=Path("circle_bound_terms_by_lambda.csv"),
         help="Destination CSV path.",
     )
     return parser.parse_args()
@@ -145,7 +135,7 @@ def main():
     fp = ForwardProcess(noise_scheduler=ns)
     diff_model = DiffusionModel(forward_process=fp, backward_process=bp)
 
-    bound_data = rectangle_data(num_samples=5000)
+    bound_data = circle_data(num_samples=5000)
     bound_loader = DataLoader(
         bound_data.tensors[0], batch_size=100, shuffle=True
     )
@@ -153,6 +143,7 @@ def main():
     diameter = np.sqrt(8)
     delta = 0.05
 
+    print("Dataset: unit circle in [-1, 1]^2; certificate diameter: sqrt(8)")
     print("Computing lambda-independent terms (this is the slow part)...")
     fixed_terms = compute_lambda_independent_terms(
         bound_loader, diff_model, dim=2
@@ -171,26 +162,19 @@ def main():
     print(
         f"\n{'lambda':<8}{'value':>9}{'recon':>11}{'prior+conf':>13}"
         f"{'diameter':>11}{'mismatch':>13}{'acc.noise':>13}"
-        f"{'total':>11}{'paper':>10}{'diff':>10}"
+        f"{'total':>11}"
     )
-    print("-" * 109)
+    print("-" * 89)
 
     for label, lamda in lambdas.items():
         terms = terms_for_lambda(
             fixed_terms, lamda, delta, diameter, n
         )
-        paper_bound = PAPER_BOUNDS[label]
-        difference = terms["total_bound"] - paper_bound
         row = {
+            "dataset": "unit_circle",
             "lambda_label": label,
             "lambda_value": float(lamda),
             **terms,
-            "paper_bound": paper_bound,
-            "difference_from_paper": difference,
-            "absolute_difference": abs(difference),
-            "relative_difference_percent": (
-                abs(difference) / paper_bound * 100
-            ),
             "non_vacuous_below_sqrt8": terms["total_bound"] < diameter,
         }
         rows.append(row)
@@ -203,7 +187,6 @@ def main():
             f"{terms['terminal_mismatch']:>13.3e}"
             f"{terms['accumulated_noise']:>13.3e}"
             f"{terms['total_bound']:>11.6f}"
-            f"{paper_bound:>10.4f}{difference:>+10.4f}"
         )
 
     args.output.parent.mkdir(parents=True, exist_ok=True)

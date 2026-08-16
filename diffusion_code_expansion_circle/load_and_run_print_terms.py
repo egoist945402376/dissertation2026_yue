@@ -4,7 +4,7 @@ import numpy as np
 import torch
 from torch.utils.data import DataLoader
 
-from main import rectangle_data
+from main import circle_data
 from model import NoiseScheduler, ForwardProcess, BackwardProcess, DiffusionModel
 from pac_bayes import empirical_risk, prior_matching, avg_distance, compute_last_term, expected_norm_diff_gaussian
 
@@ -75,16 +75,17 @@ if __name__ == '__main__':
     ns = NoiseScheduler(timesteps=1000, beta_start=1e-4, beta_end=0.02, beta_schedule='linear')
     bp = BackwardProcess(hidden_layers=3, hidden_dim=128, embed_size=128,
                          time_embed_type='sinusoidal', input_embed_type='sinusoidal')
-    bp.load_state_dict(torch.load('backward_process.pt'))
+    bp.load_state_dict(torch.load('circle_backward_process.pt', map_location='cpu'))
     fp = ForwardProcess(noise_scheduler=ns)
     diff_model = DiffusionModel(forward_process=fp, backward_process=bp)
 
-    bound_data = rectangle_data(num_samples=5000)
+    bound_data = circle_data(num_samples=5000)
     bound_loader = DataLoader(bound_data.tensors[0], batch_size=100, shuffle=True)
     n = len(bound_loader.dataset)
     diameter = np.sqrt(8)
     delta = 0.05
 
+    print('Dataset: unit circle in [-1, 1]^2; certificate diameter: sqrt(8)')
     print('Computing the lambda-independent terms (this is the slow part, run once)...')
     emp_risk, prior_match, avg_dist_term, last_term, diag = compute_bound_terms(bound_loader, diff_model, dim=2)
 
@@ -102,11 +103,8 @@ if __name__ == '__main__':
 
     lambdas = {'n/10': n / 10, 'n/5': n / 5, 'n/2': n / 2,
                'n': n, 'n/0.5': n / 0.5, 'n/0.1': n / 0.1}
-    paper = {'n/10': 1.124, 'n/5': 1.231, 'n/2': 1.5181,
-             'n': 2.035, 'n/0.5': 3.056, 'n/0.1': 11.061}
-
     header = (f"\n{'lambda':<8}{'value':>8}{'recon':>10}{'KL/lam':>9}{'diam':>9}"
-              f"{'mismatch':>12}{'acc.noise':>12}{'C0':>10}{'total':>10}{'paper':>9}{'diff':>9}")
+              f"{'mismatch':>12}{'acc.noise':>12}{'C0':>10}{'total':>10}")
     print(header)
     print('-' * (len(header) - 1))
 
@@ -114,12 +112,11 @@ if __name__ == '__main__':
     for label, lamda in lambdas.items():
         t = bound_for_lambda(emp_risk, prior_match, avg_dist_term, last_term,
                              lamda, delta, diameter, n)
-        d = t['total'] - paper[label]
         print(f"{label:<8}{lamda:>8.0f}{t['reconstruction']:>10.4f}{t['kl_over_lambda']:>9.4f}"
               f"{t['diameter']:>9.4f}{t['terminal_mismatch']:>12.2e}{t['accumulated_noise']:>12.2e}"
-              f"{t['C0']:>10.4f}{t['total']:>10.4f}{paper[label]:>9.4f}{d:>+9.4f}")
-        rows.append({'lambda_label': label, 'lambda': lamda, **t,
-                     'paper': paper[label], 'diff': d})
+              f"{t['C0']:>10.4f}{t['total']:>10.4f}")
+        rows.append({'dataset': 'unit_circle', 'lambda_label': label,
+                     'lambda': lamda, **t})
 
     print('\n=== Term shares (% of total) ===')
     for label in ['n/10', 'n', 'n/0.1']:
@@ -134,8 +131,8 @@ if __name__ == '__main__':
         flag = 'non-vacuous' if r['total'] < diameter else 'VACUOUS'
         print(f"  {r['lambda_label']:<8}{r['total']:>10.4f}   {flag}")
 
-    with open('bound_terms.csv', 'w', newline='') as f:
+    with open('circle_bound_terms.csv', 'w', newline='') as f:
         w = csv.DictWriter(f, fieldnames=list(rows[0].keys()))
         w.writeheader()
         w.writerows(rows)
-    print('\nWritten to bound_terms.csv')
+    print('\nWritten to circle_bound_terms.csv')

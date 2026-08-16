@@ -32,7 +32,10 @@ if __name__ == '__main__':
 
     # the data
     d = two_moons_data(num_samples=50000)
-    dl = dataloader = DataLoader(d.tensors[0], batch_size=100, shuffle=True)
+    # train_model() unpacks TensorDataset batches with ``batch = batch[0]``.
+    # Passing ``d.tensors[0]`` here would incorrectly reduce each batch to
+    # a single 2D point inside train_model().
+    dl = DataLoader(d, batch_size=100, shuffle=True)
 
     # training
     diff_model.train_model(train_loader=dl, epochs=500, lr=1e-4)
@@ -60,6 +63,5 @@ if __name__ == '__main__':
 
     print('Bound value: ', bound)
     plt.show()
-
 
 

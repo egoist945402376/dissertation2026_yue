@@ -14,7 +14,7 @@ import numpy as np
 import torch
 from torch.utils.data import DataLoader
 
-from main import circle_data
+from main import two_moons_data
 from model import BackwardProcess, DiffusionModel, ForwardProcess, NoiseScheduler
 from pac_bayes import avg_distance, compute_last_term, empirical_risk, prior_matching
 
@@ -103,13 +103,13 @@ def parse_args():
     parser.add_argument(
         "--model",
         type=Path,
-        default=Path("circle_backward_process_2.pt"),
+        default=Path("two_moons_backward_process.pt"),
         help="Path to the saved backward-process state dict.",
     )
     parser.add_argument(
         "--output",
         type=Path,
-        default=Path("circle_bound_terms_by_lambda_2.csv"),
+        default=Path("two_moons_bound_terms_by_lambda.csv"),
         help="Destination CSV path.",
     )
     return parser.parse_args()
@@ -135,7 +135,7 @@ def main():
     fp = ForwardProcess(noise_scheduler=ns)
     diff_model = DiffusionModel(forward_process=fp, backward_process=bp)
 
-    bound_data = circle_data(num_samples=5000)
+    bound_data = two_moons_data(num_samples=5000)
     bound_loader = DataLoader(
         bound_data.tensors[0], batch_size=100, shuffle=True
     )
@@ -143,7 +143,7 @@ def main():
     diameter = np.sqrt(8)
     delta = 0.05
 
-    print("Dataset: unit circle in [-1, 1]^2; certificate diameter: sqrt(8)")
+    print("Dataset: bounded two moons in [-1, 1]^2; certificate diameter: sqrt(8)")
     print("Computing lambda-independent terms (this is the slow part)...")
     fixed_terms = compute_lambda_independent_terms(
         bound_loader, diff_model, dim=2
@@ -171,7 +171,7 @@ def main():
             fixed_terms, lamda, delta, diameter, n
         )
         row = {
-            "dataset": "unit_circle",
+            "dataset": "two_moons",
             "lambda_label": label,
             "lambda_value": float(lamda),
             **terms,

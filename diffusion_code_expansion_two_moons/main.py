@@ -8,7 +8,7 @@ from pac_bayes import compute_bound
 
 
 def two_moons_data(num_samples, seed=None):
-    """Sample a bounded two-moons distribution inside [-1, 1]^2."""
+    """Sample two moons spanning both axes of the square [-1, 1]^2."""
     rng = np.random.default_rng(seed)
     theta = rng.uniform(0, np.pi, num_samples)
     moon = rng.integers(0, 2, num_samples)
@@ -16,8 +16,13 @@ def two_moons_data(num_samples, seed=None):
     x = np.where(moon == 0, np.cos(theta), 1 - np.cos(theta))
     y = np.where(moon == 0, np.sin(theta), 0.5 - np.sin(theta))
 
-    # Centre and scale the classical moons, leaving room for bounded noise.
-    X = 0.6 * np.stack((x - 0.5, y - 0.25), axis=1)
+    # The centred classical moons span [-1.5, 1.5] in x and
+    # [-0.75, 0.75] in y.  Scale each axis to [-0.95, 0.95], then add
+    # bounded noise of at most 0.05 so the full support stays in [-1, 1]^2.
+    X = np.stack((
+        (0.95 / 1.5) * (x - 0.5),
+        (0.95 / 0.75) * (y - 0.25),
+    ), axis=1)
     X += rng.uniform(-0.05, 0.05, size=X.shape)
     return TensorDataset(torch.from_numpy(X.astype(np.float32)))
 
@@ -51,6 +56,8 @@ if __name__ == '__main__':
     real_samples = two_moons_data(num_samples=2000)
     plt.scatter(x=real_samples.tensors[0][:, 0], y=real_samples.tensors[0][:, 1], alpha=0.5)
     plt.gca().set_aspect('equal', adjustable='box')
+    plt.xlim(-1, 1)
+    plt.ylim(-1, 1)
     plt.title('Real samples: two moons')
     plt.savefig('two_moons_real_samples.png')
 
@@ -58,10 +65,11 @@ if __name__ == '__main__':
     samples = diff_model.generate(2000, xlim=(-1, 1), ylim=(-1, 1))
     plt.scatter(samples[:, 0], samples[:, 1], alpha=0.5)
     plt.gca().set_aspect('equal', adjustable='box')
+    plt.xlim(-1, 1)
+    plt.ylim(-1, 1)
     plt.title('Generated samples: two moons')
     plt.savefig('two_moons_fake_samples.png')
 
     print('Bound value: ', bound)
     plt.show()
-
 

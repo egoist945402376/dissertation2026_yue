@@ -103,7 +103,7 @@ def parse_args():
     parser.add_argument(
         "--model",
         type=Path,
-        default=Path("two_moons_no_noise_backward_process.pt"),
+        default=Path("two_moons_no_noise_backward_process_2.pt"),
         help="Path to the saved backward-process state dict.",
     )
     parser.add_argument(

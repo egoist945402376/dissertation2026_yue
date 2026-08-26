@@ -42,7 +42,7 @@ if __name__ == '__main__':
 
     # the data
     d = circle_data(num_samples=50000)
-    dl = DataLoader(d.tensors[0], batch_size=100, shuffle=True)
+    dl = DataLoader(d, batch_size=100, shuffle=True)
 
     # training
     diff_model.train_model(train_loader=dl, epochs=500, lr=1e-4)

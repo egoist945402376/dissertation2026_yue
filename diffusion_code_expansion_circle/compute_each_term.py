@@ -14,7 +14,7 @@ import numpy as np
 import torch
 from torch.utils.data import DataLoader
 
-from main import circle_data
+from main_circle import circle_data
 from model import BackwardProcess, DiffusionModel, ForwardProcess, NoiseScheduler
 from pac_bayes import avg_distance, compute_last_term, empirical_risk, prior_matching
 
@@ -109,7 +109,7 @@ def parse_args():
     parser.add_argument(
         "--output",
         type=Path,
-        default=Path("circle_bound_terms_by_lambda_2.csv"),
+        default=Path("circle_bound_terms_by_lambda.csv"),
         help="Destination CSV path.",
     )
     return parser.parse_args()

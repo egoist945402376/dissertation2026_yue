@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import torch
 from torch.utils.data import DataLoader, TensorDataset
 import matplotlib.pyplot as plt
@@ -5,6 +7,9 @@ import numpy as np
 
 from model import NoiseScheduler, ForwardProcess, BackwardProcess, DiffusionModel
 from pac_bayes import compute_bound
+
+
+EXPERIMENT_DIR = Path(__file__).resolve().parent
 
 
 def two_moons_data(num_samples, seed=None):
@@ -43,7 +48,10 @@ if __name__ == '__main__':
 
     # training
     diff_model.train_model(train_loader=dl, epochs=500, lr=1e-4)
-    torch.save(diff_model.backward_process.state_dict(), 'two_moons_no_noise_backward_process.pt')
+    torch.save(
+        diff_model.backward_process.state_dict(),
+        EXPERIMENT_DIR / 'two_moons_no_noise_backward_process.pt',
+    )
 
     # compute bound
     bound_data = two_moons_data(num_samples=5000)
@@ -58,7 +66,7 @@ if __name__ == '__main__':
     plt.xlim(-1, 1)
     plt.ylim(-1, 1)
     plt.title('Real samples: two moons')
-    plt.savefig('two_moons_real_samples.png')
+    plt.savefig(EXPERIMENT_DIR / 'two_moons_real_samples.png')
 
     plt.figure()
     samples = diff_model.generate(2000, xlim=(-1, 1), ylim=(-1, 1))
@@ -67,8 +75,7 @@ if __name__ == '__main__':
     plt.xlim(-1, 1)
     plt.ylim(-1, 1)
     plt.title('Generated samples: two moons')
-    plt.savefig('two_moons_fake_samples.png')
+    plt.savefig(EXPERIMENT_DIR / 'two_moons_fake_samples.png')
 
     print('Bound value: ', bound)
     plt.show()
-

@@ -19,6 +19,14 @@ from model import BackwardProcess, DiffusionModel, ForwardProcess, NoiseSchedule
 from pac_bayes import avg_distance, compute_last_term, empirical_risk, prior_matching
 
 
+EXPERIMENT_DIR = Path(__file__).resolve().parent
+
+
+def experiment_path(path):
+    """Resolve relative CLI paths from this experiment directory."""
+    return path if path.is_absolute() else (EXPERIMENT_DIR / path).resolve()
+
+
 def compute_lambda_independent_terms(data_loader, diff_model, dim):
     """Compute the four quantities reused for every lambda value.
 
@@ -103,13 +111,13 @@ def parse_args():
     parser.add_argument(
         "--model",
         type=Path,
-        default=Path("circle_backward_process.pt"),
+        default=EXPERIMENT_DIR / "circle_backward_process.pt",
         help="Path to the saved backward-process state dict.",
     )
     parser.add_argument(
         "--output",
         type=Path,
-        default=Path("circle_bound_terms_by_lambda.csv"),
+        default=EXPERIMENT_DIR / "circle_bound_terms_by_lambda.csv",
         help="Destination CSV path.",
     )
     return parser.parse_args()
@@ -117,6 +125,8 @@ def parse_args():
 
 def main():
     args = parse_args()
+    args.model = experiment_path(args.model)
+    args.output = experiment_path(args.output)
 
     ns = NoiseScheduler(
         timesteps=1000,

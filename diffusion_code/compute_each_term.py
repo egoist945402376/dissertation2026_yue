@@ -14,9 +14,17 @@ import numpy as np
 import torch
 from torch.utils.data import DataLoader
 
-from main import rectangle_data
+from main_replication import rectangle_data
 from model import BackwardProcess, DiffusionModel, ForwardProcess, NoiseScheduler
 from pac_bayes import avg_distance, compute_last_term, empirical_risk, prior_matching
+
+
+EXPERIMENT_DIR = Path(__file__).resolve().parent
+
+
+def experiment_path(path):
+    """Resolve relative CLI paths from this experiment directory."""
+    return path if path.is_absolute() else (EXPERIMENT_DIR / path).resolve()
 
 
 PAPER_BOUNDS = {
@@ -113,13 +121,13 @@ def parse_args():
     parser.add_argument(
         "--model",
         type=Path,
-        default=Path("backward_process.pt"),
+        default=EXPERIMENT_DIR / "backward_process.pt",
         help="Path to the saved backward-process state dict.",
     )
     parser.add_argument(
         "--output",
         type=Path,
-        default=Path("bound_terms_by_lambda.csv"),
+        default=EXPERIMENT_DIR / "bound_terms_by_lambda.csv",
         help="Destination CSV path.",
     )
     return parser.parse_args()
@@ -127,6 +135,8 @@ def parse_args():
 
 def main():
     args = parse_args()
+    args.model = experiment_path(args.model)
+    args.output = experiment_path(args.output)
 
     ns = NoiseScheduler(
         timesteps=1000,

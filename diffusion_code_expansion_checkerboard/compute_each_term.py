@@ -14,7 +14,7 @@ import numpy as np
 import torch
 from torch.utils.data import DataLoader
 
-from main import checkerboard_data
+from main_checker_board import checkerboard_data
 from model import BackwardProcess, DiffusionModel, ForwardProcess, NoiseScheduler
 from pac_bayes import avg_distance, compute_last_term, empirical_risk, prior_matching
 
@@ -103,7 +103,7 @@ def parse_args():
     parser.add_argument(
         "--model",
         type=Path,
-        default=Path("checkerboard_backward_process_2.pt"),
+        default=Path("checkerboard_backward_process.pt"),
         help="Path to the saved backward-process state dict.",
     )
     parser.add_argument(

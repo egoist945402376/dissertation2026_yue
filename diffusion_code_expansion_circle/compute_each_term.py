@@ -103,7 +103,7 @@ def parse_args():
     parser.add_argument(
         "--model",
         type=Path,
-        default=Path("circle_backward_process_2.pt"),
+        default=Path("circle_backward_process.pt"),
         help="Path to the saved backward-process state dict.",
     )
     parser.add_argument(

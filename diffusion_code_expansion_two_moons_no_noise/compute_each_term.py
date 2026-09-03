@@ -103,13 +103,13 @@ def parse_args():
     parser.add_argument(
         "--model",
         type=Path,
-        default=Path("two_moons_backward_process.pt"),
+        default=Path("two_moons_no_noise_backward_process.pt"),
         help="Path to the saved backward-process state dict.",
     )
     parser.add_argument(
         "--output",
         type=Path,
-        default=Path("two_moons_bound_terms_by_lambda.csv"),
+        default=Path("2m_no_noise_1.csv"),
         help="Destination CSV path.",
     )
     return parser.parse_args()

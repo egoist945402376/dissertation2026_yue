@@ -119,7 +119,7 @@ def parse_args():
     parser.add_argument(
         "--output",
         type=Path,
-        default=Path("bound_terms_by_lambda_1.csv"),
+        default=Path("bound_terms_by_lambda.csv"),
         help="Destination CSV path.",
     )
     return parser.parse_args()
